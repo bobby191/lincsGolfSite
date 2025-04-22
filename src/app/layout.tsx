@@ -1,3 +1,7 @@
+//\lincs-golf-site\src\app\layout.tsx
+//By Robert Nelson last edit 04/12/25
+//About File:
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
