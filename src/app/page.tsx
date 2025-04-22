@@ -1,5 +1,5 @@
 //\lincs-golf-site\src\app\page.tsx
-//By Robert Nelson last edit 04/12/25
+//By Robert Nelson last edit 04/22/25
 //About File:
 
 "use client";//this has something to do with react idk yet
@@ -20,7 +20,13 @@ export default function HomePage() {
     });
     const data = await res.json();
     console.log("Response from login:", data);
-    // Handle success/error and update the UI accordingly
+    if (res.ok) {
+      // login succeeded → go to dashboard
+      window.location.href = "/dashboard";
+    } else {
+      // show error message
+      alert(data.error || "Login failed");
+    }
   };
 
   return (
