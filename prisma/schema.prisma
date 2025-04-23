@@ -22,17 +22,49 @@ enum EventType {
 }
 
 model User {
-  id         Int          @id @default(autoincrement())
-  email      String       @unique
-  username   String?
-  password   String
-  role       Role         @default(USER)
-  createdAt  DateTime     @default(now())
+  id             Int              @id @default(autoincrement())
+  email          String           @unique
+  username       String?
+  password       String
+  role           Role             @default(USER)
+  createdAt      DateTime         @default(now())
 
-  events     Event[]      @relation("CreatedEvents")
-  scores     Score[]
-  friendships Friendship[] @relation("userFriendships")
-  friendsOf  Friendship[] @relation("friendUserFriendships")
+  participations Participation[]   // the events (rounds) they’ve played
+  friendships    Friendship[]      @relation("userFriendships")
+  friendsOf      Friendship[]      @relation("friendUserFriendships")
+}
+
+model Event {
+  id             Int              @id @default(autoincrement())
+  name           String           @unique
+  type           EventType        @default(Unofficial)
+  date           DateTime?
+  participants   Int
+  majorDetail    Major?           @relation("MajorToEvent")
+
+  participations Participation[]
+}
+
+model Major {
+  eventId        Int      @id
+  event          Event    @relation("MajorToEvent", fields: [eventId], references: [id])
+  description    String
+  calendarUrl    String
+  pointStructure Json
+}
+
+model Participation {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   Int
+  strokes   Int      // raw strokes for the round
+  points    Int      // season points awarded by placement
+  playedAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventId])
 }
 
 model Friendship {
@@ -44,27 +76,4 @@ model Friendship {
   createdAt DateTime @default(now())
 
   @@unique([userId, friendId])
-}
-
-model Event {
-  id           Int        @id @default(autoincrement())
-  name         String     @unique
-  type         EventType  @default(Unofficial)
-  date         DateTime?
-  creatorId    Int
-  createdBy    User       @relation("CreatedEvents", fields: [creatorId], references: [id])
-  participants Int
-
-  scores       Score[]
-}
-
-model Score {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-  eventId   Int
-  event     Event    @relation(fields: [eventId], references: [id])
-  strokes   Int
-  points    Int
-  createdAt DateTime @default(now())
 }
