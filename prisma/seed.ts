@@ -17,7 +17,7 @@ async function main() {
   const [user1, user2] = await Promise.all([
     prisma.user.create({
       data: {
-        email: "test@example.com",
+        email: "1@1",
         username: "testuser",
         password: await bcrypt.hash("password123", 10),
         role: "USER",
