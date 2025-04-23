@@ -7,7 +7,7 @@
 import { useState, useEffect } from "react";
 
 export default function HomePage() {
-  //set mode allows switch page display between register and login
+  //setMode allows switch page display between register and login
   const [mode, setMode] = useState<"login" | "register">("login");
 
   //shared fields
@@ -25,16 +25,27 @@ export default function HomePage() {
   //match check for inline UX
   const passwordsMatch = mode == "register" ? password === confirmPassword : true;
   
-  //clear error when fields change
+  //clear form when fields change
   useEffect(() => {
+    setEmail("");
+    setPassword("");
+    setUsername("");
+    setConfirmPassword("");
     setError(null);
-  }, [email, password, username, confirmPassword, mode]);
-  
-  // Function to handle form submission
-  const handleSignIn = async (e: React.FormEvent) => {
+  }, [mode]);
+
+  // Function to handle signin
+  const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
+    // simple HTML5 validation check - thanks gpt
+    if (!e.currentTarget.checkValidity()) {
+      setLoading(false);
+      return;
+    }
+
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -53,15 +64,18 @@ export default function HomePage() {
   };
 
   //register handler
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
+    setLoading(true);
 
-    if(!passwordsMatch){
-      setError("Passwords do not match");
+    // HTML5 check + password match
+    if (!e.currentTarget.checkValidity() || !passwordsMatch) {
+      setLoading(false);
+      if (!passwordsMatch) setError("Passwords do not match");
       return;
     }
 
-    setLoading(true);
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -73,10 +87,6 @@ export default function HomePage() {
       // Optionally auto-login or switch back to login mode:
       setMode("login");
       setError("Account created! Please log in.");
-      setEmail("");
-      setPassword("");
-      setConfirmPassword("");
-      setUsername("");
     } else {
       const data = await res.json();
       setError(data.error || "Registration failed");
@@ -84,75 +94,93 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gray-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="bg-white p-6 rounded shadow-md w-full max-w-sm">
         <h1 className="text-2xl font-bold mb-4 text-center">
           {mode === "login" ? "Welcome to LINCS Golf" : "Create Account"}
         </h1>
 
-        {error && <p className="text-sm text-red-600 mb-4 text-center">{error}</p>}
+        {error && (
+          <p className="text-sm text-red-600 mb-4 text-center">{error}</p>
+        )}
 
-        <form onSubmit={mode === "login" ? handleSignIn : handleRegister}>
+        <form
+          //noValidate
+          onSubmit={mode === "login" ? handleSignIn : handleRegister}
+        >
           {/* Email */}
           <div className="mb-4">
-            <label htmlFor="email" className="block text-sm font-medium">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium">
+              Email
+            </label>
             <input
               type="email"
               id="email"
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
               disabled={loading}
+              required
             />
           </div>
 
-          {/* Username (register only) */}
+          {/* Username */}
           {mode === "register" && (
             <div className="mb-4">
-              <label htmlFor="username" className="block text-sm font-medium">Username</label>
+              <label htmlFor="username" className="block text-sm font-medium">
+                Username
+              </label>
               <input
                 type="text"
                 id="username"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                required
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                 disabled={loading}
+                required
               />
             </div>
           )}
 
           {/* Password */}
           <div className="mb-4">
-            <label htmlFor="password" className="block text-sm font-medium">Password</label>
+            <label htmlFor="password" className="block text-sm font-medium">
+              Password
+            </label>
             <input
               type="password"
               id="password"
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
               disabled={loading}
+              required
+              minLength={6}
             />
           </div>
 
-          {/* Confirm Password (register only) */}
+          {/* Confirm Password */}
           {mode === "register" && (
             <div className="mb-4">
-              <label htmlFor="confirmPassword" className="block text-sm font-medium">Confirm Password</label>
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium"
+              >
+                Confirm Password
+              </label>
               <input
                 type="password"
                 id="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 className={`mt-1 block w-full rounded-md shadow-sm border ${
                   confirmPassword && !passwordsMatch
                     ? "border-red-500"
                     : "border-gray-300"
                 }`}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
                 disabled={loading}
+                required
+                minLength={6}
               />
               {confirmPassword && !passwordsMatch && (
                 <p className="text-xs text-red-600 mt-1">
@@ -169,7 +197,6 @@ export default function HomePage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  aria-busy={loading}
                   className="bg-blue-600 disabled:opacity-50 text-white py-2 px-4 rounded hover:bg-blue-700"
                 >
                   {loading ? "Logging in…" : "Sign In"}
@@ -195,8 +222,7 @@ export default function HomePage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || (mode === "register" && !passwordsMatch)}
-                  aria-busy={loading}
+                  disabled={loading || !passwordsMatch}
                   className="bg-green-600 disabled:opacity-50 text-white py-2 px-4 rounded hover:bg-green-700"
                 >
                   {loading ? "Creating…" : "Create"}
@@ -209,6 +235,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-
-  
