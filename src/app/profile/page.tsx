@@ -1,4 +1,4 @@
-//lincs-golf-site\src\app\dashboard\page.tsx
+// \src\app\profile\page.tsx
 //By Robert Nelson last edit 04/28/25
 //About File:
 
@@ -8,22 +8,22 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-interface Entry {
+interface UserProfile {
   username: string;
-  totalPoints: number;
-  participationSummary: string;
+  email: string;
+  createdAt: string; // or Date
 }
 
-export default function DashboardPage() {
-  const [entries, setEntries] = useState<Entry[]>([]);
+export default function ProfilePage() {
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
 
   useEffect(() => {
-    fetch("/api/leaderboards/season")
+    fetch("/api/profile")
       .then((res) => res.json())
-      .then((data: Entry[]) => {
-        setEntries(data);
+      .then((data: UserProfile) => {
+        setProfile(data);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -32,14 +32,14 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Loading leaderboard…</p>
+        <p>Loading profile…</p>
       </div>
     );
   }
 
-
   return (
     <div className="min-h-screen bg-green-50">
+
       {/* Welcome Header */}
       <header className="bg-green-700 text-white p-6 text-center">
         <h1 className="text-3xl font-bold">Welcome to LINCS Golf!</h1>
@@ -70,34 +70,19 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="p-8">
-        <h2 className="text-4xl font-bold mb-6 text-center">Season Leaderboard</h2>
+        <h2 className="text-4xl font-bold mb-6 text-center">Profile Information</h2>
 
-        <div className="mx-auto max-w-4xl">
-          <table className="w-full bg-white rounded shadow overflow-hidden">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="py-3 px-4 text-left">Rank</th>
-                <th className="py-3 px-4 text-left">Player</th>
-                <th className="py-3 px-4 text-right">Points</th>
-                <th className="py-3 px-4 text-right">Unofficial/Desi/Major</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((e, i) => (
-                <tr
-                  key={e.username + i}
-                  className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                >
-                  <td className="py-2 px-4">{i + 1}</td>
-                  <td className="py-2 px-4">{e.username}</td>
-                  <td className="py-2 px-4 text-right font-semibold">{e.totalPoints}</td>
-                  <td className="py-2 px-4 text-right text-sm text-gray-600">{e.participationSummary}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {profile ? (
+          <div className="bg-white max-w-md mx-auto p-6 rounded shadow">
+            <p className="text-lg"><span className="font-bold">Username:</span> {profile.username}</p>
+            <p className="text-lg"><span className="font-bold">Email:</span> {profile.email}</p>
+            <p className="text-lg"><span className="font-bold">Joined:</span> {new Date(profile.createdAt).toLocaleDateString()}</p>
+          </div>
+        ) : (
+          <p className="text-center text-red-500">Profile not found.</p>
+        )}
       </main>
+
     </div>
   );
 }

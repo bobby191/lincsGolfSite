@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  // 1) Aggregate points for users who have participations
+  //Aggregate points for users who have participations
   const sums = await prisma.participation.groupBy({
     by: ["userId"],
     _sum: { points: true },
@@ -16,17 +16,40 @@ export async function GET() {
     sums.map((s) => [s.userId, s._sum.points ?? 0])
   );
 
-  // 2) Fetch all users
+  //Fetch all users
   const users = await prisma.user.findMany({
     select: { id: true, username: true },
   });
 
-  // 3) Combine and sort
+  //Get participation counts by type for each user
+  const allParticipations = await prisma.participation.findMany({
+    include: {
+      event: { select: { type: true } },
+    },
+  });
+
+  const participationMap: Record<number, { desi: number; unofficial: number; major: number }> = {};
+
+  for (const p of allParticipations) {
+    const uid = p.userId;
+    if (!participationMap[uid]) {
+      participationMap[uid] = { desi: 0, unofficial: 0, major: 0 };
+    }
+    if (p.event.type === "Desi") participationMap[uid].desi++;
+    else if (p.event.type === "Unofficial") participationMap[uid].unofficial++;
+    else if (p.event.type === "Major") participationMap[uid].major++;
+  }
+
+  // 4) Combine and sort
   const leaderboard = users
-    .map((u) => ({
-      username: u.username!,
-      totalPoints: sumMap[u.id] ?? 0,
-    }))
+    .map((u) => {
+      const events = participationMap[u.id] || { desi: 0, unofficial: 0, major: 0 };
+      return {
+        username: u.username!,
+        totalPoints: sumMap[u.id] ?? 0,
+        participationSummary: `${events.unofficial}:${events.desi}:${events.major}`,
+      };
+    })
     .sort((a, b) => b.totalPoints - a.totalPoints);
 
   return NextResponse.json(leaderboard);
