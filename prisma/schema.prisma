@@ -38,11 +38,15 @@ model Event {
   id             Int              @id @default(autoincrement())
   name           String           @unique
   type           EventType        @default(Unofficial)
+  gameType       String
+  winnerCount    Int              @default(1)
+  pointSplit     Json
   date           DateTime?
-  participants   Int
-  majorDetail    Major?           @relation("MajorToEvent")
 
+  participants   Int              @default(0)
   participations Participation[]
+
+  majorDetail    Major?           @relation("MajorToEvent")
 }
 
 model Major {

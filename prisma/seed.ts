@@ -1,19 +1,19 @@
 //lincs-golf-site\prisma\seed.ts
-//By Robert Nelson last edit 04/12/25
+//By Robert Nelson last edit 04/30/25
 //About File:
 
 import { prisma } from "../src/lib/prisma.js";
 import bcrypt from "bcryptjs";
 
 async function main() {
-  // 0) Clear existing data
+  // 0) Wipe existing data (in the right order)
   await prisma.participation.deleteMany();
   await prisma.friendship.deleteMany();
   await prisma.major.deleteMany();
   await prisma.event.deleteMany();
   await prisma.user.deleteMany();
 
-  // 1) Upsert two test users
+  // 1) Create two test users
   const [user1, user2] = await Promise.all([
     prisma.user.create({
       data: {
@@ -35,31 +35,45 @@ async function main() {
 
   // 2) Create one Major and one Unofficial event
   const [majorEvent, unofficialEvent] = await Promise.all([
+    // ---- Major Event ----
     prisma.event.create({
       data: {
         name: "Spring Major Championship",
         type: "Major",
+        gameType: "Stroke Play",
+        winnerCount: 8,
+        pointSplit: [16, 8, 6, 5, 4, 3, 2, 1],                 // JSON column
         date: new Date("2025-05-01T10:00:00Z"),
-        participants: 0, // not used for Majors
+        participants: 0,                   // defaults to 0
         majorDetail: {
           create: {
-            description: "The big Spring Major—100 points to winner!",
+            description: "The big Spring Major points to winner!",
             calendarUrl: "https://calendar.example.com/spring-major",
-            pointStructure: {
-              "1": 100,
-              "2": 80,
-              "3": 70,
+            pointStructure: {               // JSON column
+              "1": 16,
+              "2": 8,
+              "3": 6,
+              "4": 5,
+              "5": 4,
+              "6": 3,
+              "7": 2,
+              "8": 1,
             },
           },
         },
       },
     }),
+
+    // ---- Unofficial Event ----
     prisma.event.create({
       data: {
         name: "Weekend Scramble",
         type: "Unofficial",
+        gameType: "Scramble (2v2)",
+        winnerCount: 2,
+        pointSplit: [2, 2],                // totalPoints = 4 for Unofficial
         date: new Date("2025-04-20T09:00:00Z"),
-        participants: 4, // requires 3–4
+        participants: 4,                   // e.g. four players joined
       },
     }),
   ]);
@@ -67,49 +81,49 @@ async function main() {
   // 3) Seed participations (strokes + season points)
   await prisma.participation.createMany({
     data: [
-      // User1 at Major
+      // Major: user1 & user2
       {
         userId: user1.id,
         eventId: majorEvent.id,
         strokes: 72,
-        points: 100,
+        points: 16,
       },
       {
         userId: user2.id,
         eventId: majorEvent.id,
         strokes: 75,
-        points: 80,
+        points: 8,
       },
-      // User1 at Unofficial
+      // Unofficial: user1 & user2
       {
         userId: user1.id,
         eventId: unofficialEvent.id,
         strokes: 68,
-        points: 0,
+        points: 2,   // winnerCount=2, split=[2,2] → user1 got 1st place = 2
       },
       {
         userId: user2.id,
         eventId: unofficialEvent.id,
         strokes: 70,
-        points: 0,
+        points: 2,   // second place = 2
       },
     ],
   });
 
   // 4) Create reciprocal friendships
-  await prisma.friendship.create({
-    data: { userId: user1.id, friendId: user2.id },
-  });
-  await prisma.friendship.create({
-    data: { userId: user2.id, friendId: user1.id },
+  await prisma.friendship.createMany({
+    data: [
+      { userId: user1.id, friendId: user2.id },
+      { userId: user2.id, friendId: user1.id },
+    ],
   });
 
-  console.log("Seeding complete.");
+  console.log("🌱 Seeding complete.");
 }
 
 main()
   .then(() => process.exit(0))
-  .catch((error) => {
-    console.error("Seeding error:", error);
+  .catch((e) => {
+    console.error("Seeding error:", e);
     process.exit(1);
   });
